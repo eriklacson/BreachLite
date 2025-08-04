@@ -1,0 +1,12 @@
+name: shell-lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt
+      - run: shellcheck breachlite.sh
+      - run: shfmt -d -i 2 -ci breachlite.sh
