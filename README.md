@@ -1,11 +1,11 @@
 # BreachLite 🚀
 
-*One-command bootstrap for a lightweight red-team, threat‑intel & password‑cracking workstation.*
+*One-command shell script for a lightweight red-team, threat‑intel & password‑cracking workstation.*
 
 ## Quick start
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/main/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.sh
 sudo bash breachlite.sh
 ```
 
@@ -26,7 +26,7 @@ Full usage & troubleshooting → **docs/usage.md**
 ## Install from a tagged release
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/breachlite.sh
 sudo bash breachlite.sh
 ```
 

@@ -1,7 +1,7 @@
 # BreachLite — Usage & FAQ
+# =========================
 
-> **Version tested:** v1.1.0
-> **Target OS:** Ubuntu 22.04 / 24.04 (x86‑64 or ARM64)
+> **Target OS:** Ubuntu 22.04 / 24.04 (x86‑64 or ARM64)
 
 ---
 
@@ -10,14 +10,7 @@
 ### Fresh install (main branch)
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/main/breachlite.sh
-sudo bash breachlite.sh
-```
-
-### Pin to a tagged release
-
-```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/v1.1.0/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.sh
 sudo bash breachlite.sh
 ```
 
