@@ -1,6 +1,6 @@
 # BreachLite 🚀
 
-*One-command bootstrap for a lightweight red-team, threat‑intel, ****vulnerability‑management**** & password‑cracking workstation.*
+*One-command bootstrap for a lightweight red-team, threat‑intel, vulnerability‑management, & password‑cracking workstation.*
 
 ## Quick start
 
@@ -11,7 +11,7 @@ sudo bash breachlite.sh
 
 ### Feature highlights
 
-- 🛠  Offensive: nmap, Metasploit, Burp, **Sliver**, Responder, ffuf
+- 🛠  **Offensive**: nmap, Metasploit, Burp, **Sliver**, Responder, ffuf
 - 🔑  **Cracking:** hashcat, john, hydra + rockyou & SecLists
 - 🔎  Intel/OSINT: yara, IOC Parser, threatfox, subfinder, amass, gobuster
 - 🧪  **Vulnerability management:** **Nuclei** (templated CVE/misconfig scanner), Nikto, **Trivy** (images/repos/SBOM), **searchsploit** (Exploit‑DB), **Lynis** (host audit) — plus optional **httpx**/**naabu** companions
