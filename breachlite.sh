@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # breachlite.sh
-# BreachLite bootstrapper – One‑command setup for a lean red‑team & threat‑intel workstation on Ubuntu 22.04 / 24.04
+# BreachLite bootstrapper – One‑command setup for a lean red‑team, threat‑intel, vuln‑management & password‑cracking workstation on Ubuntu 22.04 / 24.04
 # https://github.com/YOURUSER/BreachLite
 set -euo pipefail
 
@@ -57,7 +57,7 @@ apt install -y nmap metasploit-framework responder yara yara-python ffuf \
 sudo -u "$SUDO_USER" GO111MODULE=on go install github.com/ffuf/ffuf/v2@latest
 # Sliver C2
 snap install sliver
-# Burp Suite (community) – silent unattended installer
+# Burp Suite (community) – silent unattended installer
 BURP_URL="https://portswigger-cdn.net/burp/releases/download?product=community&version=latest&type=Linux"
 mkdir -p /opt/burpsuite && cd /opt/burpsuite
 wget -qO burp.sh "$BURP_URL"
@@ -70,12 +70,43 @@ if [[ -f "$ROCKYOU" ]]; then
 fi
 
 ########## 7. Threat‑Intel / OSINT tools ##########
-echo "[*] Installing Threat‑Intel & OSINT helpers…"
+echo "[*] Installing threat‑intel & OSINT helpers…"
 pip install --upgrade threatfox ioc_parser
 # Popular OSINT Go tools
 sudo -u "$SUDO_USER" go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 sudo -u "$SUDO_USER" go install github.com/OJ/gobuster/v3@latest
 sudo -u "$SUDO_USER" go install github.com/caffix/amass/v3/...@latest
+
+########## 7.1 Vulnerability scanners ##########
+echo "[*] Installing vulnerability scanners…"
+
+# Determine user's GOPATH for Go tools
+GOPATH_DIR=$(sudo -u "$SUDO_USER" bash -lc 'go env GOPATH' 2>/dev/null || true)
+if [[ -z "$GOPATH_DIR" ]]; then
+  GOPATH_DIR="/home/$SUDO_USER/go"
+fi
+
+# Nuclei (ProjectDiscovery) — install as non-root user
+sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
+# First-time templates update via absolute path (avoid PATH race)
+if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
+  sudo -u "$SUDO_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
+fi
+
+# Nikto & Exploit-DB (searchsploit)
+apt install -y nikto exploitdb
+
+# Trivy (prefer apt; fallback to installer if repo missing)
+if ! apt -y install trivy 2>/dev/null; then
+  curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+fi
+
+# Lynis (host audit)
+apt install -y lynis
+
+# Optional ProjectDiscovery companions
+sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest'
+sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest'
 
 ########## 8. Hardening ##########
 echo "[*] Enabling UFW & Fail2Ban…"
@@ -91,6 +122,9 @@ dpkg-reconfigure --priority=low unattended-upgrades
 ALIASES=/etc/profile.d/99-breachlite-aliases.sh
 echo "[*] Adding handy aliases to $ALIASES"
 cat <<'EOF' > "$ALIASES"
+# Ensure Go user bin is on PATH for tools like nuclei/httpx/naabu
+export PATH="$PATH:$HOME/go/bin"
+
 alias ll='ls -alF'
 alias grep='grep --color=auto'
 alias nse='nmap --script'
@@ -100,6 +134,15 @@ alias hash='hashcat'
 alias johnny='john --format=dynamic'
 alias hyd='hydra'
 alias rockyou='/usr/share/wordlists/rockyou.txt'
+# Vuln management helpers
+alias nucleiupdate='nuclei -update-templates'
+alias vulnscan='nuclei -l targets.txt -severity critical,high -rl 100 -c 50 -o nuclei-findings.txt'
+alias imgscan='trivy image'
+alias hostaudit='lynis audit system'
+# Optional PD companions
+alias httpprobe='httpx -silent -status-code -tech-detect -title -follow-redirects'
+alias fastports='naabu -top-ports 1000 -rate 1000 -c 200'
+# Docker QoL
 alias dockerkill='docker ps -q | xargs -r docker kill'
 alias dockerclean='docker system prune -f --volumes'
 EOF
@@ -118,4 +161,4 @@ EOT
 chown "$SUDO_USER":"$SUDO_USER" /home/"$SUDO_USER"/vpn/README.txt
 
 ########## 11. Finish ##########
-echo "[+] BreachLite installation complete! Reboot, log back in, and enjoy your optimised red‑team, TI, cracking & CTF workstation."
+echo "[+] BreachLite installation complete! Reboot, log back in, and enjoy your optimised red‑team, TI, vuln‑management, cracking & CTF workstation."
