@@ -5,7 +5,7 @@
 ## Quick start
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/main/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.sh
 sudo bash breachlite.sh
 ```
 
