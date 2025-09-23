@@ -9,6 +9,9 @@ curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.
 sudo bash breachlite.sh
 ```
 
+> **Security note:** Trivy is pulled from Ubuntu's archive when available. If the package is missing, the script enables Aqua Security's signed APT repository only after verifying the publishing key fingerprint.
+
+
 ### Feature highlights
 
 - 🛠  **Offensive**: nmap, Metasploit, Burp, **Sliver**, Responder, ffuf

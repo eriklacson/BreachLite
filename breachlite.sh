@@ -107,9 +107,43 @@ fi
 # Nikto & Exploit-DB (searchsploit)
 apt install -y nikto exploitdb
 
-# Trivy (prefer apt; fallback to installer if repo missing)
+# Trivy (prefer Ubuntu archive; fallback to Aqua Security's signed repo)
 if ! apt -y install trivy 2>/dev/null; then
-    curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    echo "[*] Ubuntu archive lacks Trivy – adding Aqua Security's signed repository…"
+    TRIVY_KEYRING="/usr/share/keyrings/trivy-archive-keyring.gpg"
+    TRIVY_LIST="/etc/apt/sources.list.d/trivy.list"
+    TMP_KEY=$(mktemp)
+    TMP_GNUPGHOME=$(mktemp -d)
+    chmod 700 "$TMP_GNUPGHOME"
+
+    cleanup_trivy_tmp() {
+        rm -f "$TMP_KEY"
+        rm -rf "$TMP_GNUPGHOME"
+    }
+    trap cleanup_trivy_tmp EXIT
+
+    curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key -o "$TMP_KEY"
+
+    EXPECTED_FPR="44C6B1B898686F4BD8C02B08F6BC81736B062A3A"
+    ACTUAL_FPR=$(GNUPGHOME="$TMP_GNUPGHOME" gpg --batch --with-colons --import-options show-only --import "$TMP_KEY" 2>/dev/null | awk -F: '/^fpr:/ {print $10; exit}')
+    if [[ "$ACTUAL_FPR" != "$EXPECTED_FPR" ]]; then
+        echo "[!] ERROR: Unexpected Trivy signing key fingerprint: ${ACTUAL_FPR:-unknown}" >&2
+        exit 1
+    fi
+
+    gpg --dearmor --yes "$TMP_KEY" >"$TRIVY_KEYRING"
+    chmod go+r "$TRIVY_KEYRING"
+
+    cat <<'EOF_TRIVY' >"$TRIVY_LIST"
+deb [signed-by=/usr/share/keyrings/trivy-archive-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb stable main
+EOF_TRIVY
+
+    apt update
+    apt install -y trivy
+
+    trap - EXIT
+    cleanup_trivy_tmp
+    unset -f cleanup_trivy_tmp
 fi
 
 # Lynis (host audit)
