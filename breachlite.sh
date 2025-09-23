@@ -94,14 +94,18 @@ echo "[*] Installing vulnerability scanners…"
 # Determine user's GOPATH for Go tools
 GOPATH_DIR=$(sudo -u "$TARGET_USER" bash -lc 'go env GOPATH' 2>/dev/null || true)
 if [[ -z "$GOPATH_DIR" ]]; then
-    GOPATH_DIR="/home/$SUDO_USER/go"
+    if [[ "$TARGET_USER" == "root" ]]; then
+        GOPATH_DIR="/root/go"
+    else
+        GOPATH_DIR="/home/${TARGET_USER}/go"
+    fi
 fi
 
 # Nuclei (ProjectDiscovery) — install as non-root user
-sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
+sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
 # First-time templates update via absolute path (avoid PATH race)
 if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
-    sudo -u "$SUDO_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
+    sudo -u "$TARGET_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
 fi
 
 # Nikto & Exploit-DB (searchsploit)
