@@ -12,6 +12,13 @@ if [[ $(id -u) -ne 0 ]]; then
     echo "Run this script as root (sudo)." >&2
     exit 1
 fi
+
+TARGET_USER=${SUDO_USER:-$(logname 2>/dev/null || printf '')}
+if [[ -z "$TARGET_USER" ]]; then
+    echo "Unable to determine target user (check SUDO_USER or active login)." >&2
+    exit 1
+fi
+
 REL=$(lsb_release -rs)
 echo "[*] Detected Ubuntu $REL"
 
@@ -28,7 +35,7 @@ apt install -y --no-install-recommends \
 echo "[*] Installing minimal XFCE environment…"
 apt install -y xubuntu-desktop-minimal lightdm
 # Disable compositor for performance
-sudo -u "$SUDO_USER" xfconf-query -c xfwm4 -p /general/use_compositing -s false || true
+sudo -u "$TARGET_USER" xfconf-query -c xfwm4 -p /general/use_compositing -s false || true
 systemctl set-default graphical.target
 
 ########## 3. Power optimisation ##########
@@ -51,14 +58,14 @@ grep -q vm.swappiness /etc/sysctl.conf || echo 'vm.swappiness=10' >>/etc/sysctl.
 echo "[*] Installing Docker & Compose…"
 apt install -y docker.io docker-compose-plugin
 systemctl enable --now docker
-usermod -aG docker "$SUDO_USER"
+usermod -aG docker "$TARGET_USER"
 
 ########## 6. Core Red‑Team & Cracking tools ##########
 echo "[*] Installing core red‑team & password‑cracking tools…"
 apt install -y nmap metasploit-framework responder yara yara-python ffuf \
     hashcat john hydra seclists wordlists
 # Latest ffuf (optional)
-sudo -u "$SUDO_USER" GO111MODULE=on go install github.com/ffuf/ffuf/v2@latest
+sudo -u "$TARGET_USER" GO111MODULE=on go install github.com/ffuf/ffuf/v2@latest
 # Sliver C2
 snap install sliver
 # Burp Suite (community) – silent unattended installer
@@ -77,15 +84,15 @@ fi
 echo "[*] Installing threat‑intel & OSINT helpers…"
 pip install --upgrade threatfox ioc_parser
 # Popular OSINT Go tools
-sudo -u "$SUDO_USER" go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-sudo -u "$SUDO_USER" go install github.com/OJ/gobuster/v3@latest
-sudo -u "$SUDO_USER" go install github.com/caffix/amass/v3/...@latest
+sudo -u "$TARGET_USER" go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+sudo -u "$TARGET_USER" go install github.com/OJ/gobuster/v3@latest
+sudo -u "$TARGET_USER" go install github.com/caffix/amass/v3/...@latest
 
 ########## 7.1 Vulnerability scanners ##########
 echo "[*] Installing vulnerability scanners…"
 
 # Determine user's GOPATH for Go tools
-GOPATH_DIR=$(sudo -u "$SUDO_USER" bash -lc 'go env GOPATH' 2>/dev/null || true)
+GOPATH_DIR=$(sudo -u "$TARGET_USER" bash -lc 'go env GOPATH' 2>/dev/null || true)
 if [[ -z "$GOPATH_DIR" ]]; then
     GOPATH_DIR="/home/$SUDO_USER/go"
 fi
@@ -109,8 +116,8 @@ fi
 apt install -y lynis
 
 # Optional ProjectDiscovery companions
-sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest'
-sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest'
+sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest'
+sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest'
 
 ########## 8. Hardening ##########
 echo "[*] Enabling UFW & Fail2Ban…"
@@ -119,7 +126,7 @@ ufw default allow outgoing
 ufw allow ssh
 ufw --force enable
 systemctl enable --now fail2ban
-apt install -y unattended-upgrades
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upgrades
 dpkg-reconfigure --priority=low unattended-upgrades
 
 ########## 9. Productivity aliases ##########
@@ -155,14 +162,14 @@ chmod +x "$ALIASES"
 ########## 10. VPN / CTF connectivity ##########
 echo "[*] Installing OpenVPN client & NetworkManager plugin…"
 apt install -y openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
-mkdir -p /home/"$SUDO_USER"/vpn
-chown "$SUDO_USER":"$SUDO_USER" /home/"$SUDO_USER"/vpn
-cat <<'EOT' >/home/"$SUDO_USER"/vpn/README.txt
+mkdir -p /home/"$TARGET_USER"/vpn
+chown "$TARGET_USER":"$TARGET_USER" /home/"$TARGET_USER"/vpn
+cat <<'EOT' >/home/"$TARGET_USER"/vpn/README.txt
 Place your .ovpn files in this directory and import them with:
   nmcli connection import type openvpn file <file.ovpn>
 Or launch the NetworkManager GUI (Settings ▸ Network ▸ + ▸ VPN ▸ Import).
 EOT
-chown "$SUDO_USER":"$SUDO_USER" /home/"$SUDO_USER"/vpn/README.txt
+chown "$TARGET_USER":"$TARGET_USER" /home/"$TARGET_USER"/vpn/README.txt
 
 ########## 11. Finish ##########
 echo "[+] BreachLite installation complete! Reboot, log back in, and enjoy your optimised red‑team, TI, vuln‑management, cracking & CTF workstation."
