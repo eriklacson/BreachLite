@@ -4,9 +4,13 @@
 # https://github.com/YOURUSER/BreachLite
 set -euo pipefail
 
+# Ensure all apt/dpkg operations run non-interactively
+export DEBIAN_FRONTEND=noninteractive
+
 ########## 0. Detect distro ##########
 if [[ $(id -u) -ne 0 ]]; then
-  echo "Run this script as root (sudo)." >&2; exit 1
+    echo "Run this script as root (sudo)." >&2
+    exit 1
 fi
 REL=$(lsb_release -rs)
 echo "[*] Detected Ubuntu $REL"
@@ -15,10 +19,10 @@ echo "[*] Detected Ubuntu $REL"
 echo "[*] Updating system & installing base packages…"
 apt update && apt -y upgrade
 apt install -y --no-install-recommends \
-  build-essential git curl wget unzip jq \
-  ca-certificates gnupg lsb-release software-properties-common \
-  python3 python3-pip golang-go net-tools ufw fail2ban \
-  apt-transport-https
+    build-essential git curl wget unzip jq \
+    ca-certificates gnupg lsb-release software-properties-common \
+    python3 python3-pip golang-go net-tools ufw fail2ban \
+    apt-transport-https
 
 ########## 2. Minimal GUI (XFCE) ##########
 echo "[*] Installing minimal XFCE environment…"
@@ -39,9 +43,9 @@ fallocate -l 4G /swapfile
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
-grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
 sysctl -w vm.swappiness=10
-grep -q vm.swappiness /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
+grep -q vm.swappiness /etc/sysctl.conf || echo 'vm.swappiness=10' >>/etc/sysctl.conf
 
 ########## 5. Docker ##########
 echo "[*] Installing Docker & Compose…"
@@ -52,7 +56,7 @@ usermod -aG docker "$SUDO_USER"
 ########## 6. Core Red‑Team & Cracking tools ##########
 echo "[*] Installing core red‑team & password‑cracking tools…"
 apt install -y nmap metasploit-framework responder yara yara-python ffuf \
-  hashcat john hydra seclists wordlists
+    hashcat john hydra seclists wordlists
 # Latest ffuf (optional)
 sudo -u "$SUDO_USER" GO111MODULE=on go install github.com/ffuf/ffuf/v2@latest
 # Sliver C2
@@ -66,7 +70,7 @@ chmod +x burp.sh
 # Decompress rockyou wordlist for convenience
 ROCKYOU="/usr/share/wordlists/rockyou.txt.gz"
 if [[ -f "$ROCKYOU" ]]; then
-  gzip -d -kf "$ROCKYOU"
+    gzip -d -kf "$ROCKYOU"
 fi
 
 ########## 7. Threat‑Intel / OSINT tools ##########
@@ -83,14 +87,14 @@ echo "[*] Installing vulnerability scanners…"
 # Determine user's GOPATH for Go tools
 GOPATH_DIR=$(sudo -u "$SUDO_USER" bash -lc 'go env GOPATH' 2>/dev/null || true)
 if [[ -z "$GOPATH_DIR" ]]; then
-  GOPATH_DIR="/home/$SUDO_USER/go"
+    GOPATH_DIR="/home/$SUDO_USER/go"
 fi
 
 # Nuclei (ProjectDiscovery) — install as non-root user
 sudo -u "$SUDO_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
 # First-time templates update via absolute path (avoid PATH race)
 if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
-  sudo -u "$SUDO_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
+    sudo -u "$SUDO_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
 fi
 
 # Nikto & Exploit-DB (searchsploit)
@@ -98,7 +102,7 @@ apt install -y nikto exploitdb
 
 # Trivy (prefer apt; fallback to installer if repo missing)
 if ! apt -y install trivy 2>/dev/null; then
-  curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 fi
 
 # Lynis (host audit)
@@ -121,7 +125,7 @@ dpkg-reconfigure --priority=low unattended-upgrades
 ########## 9. Productivity aliases ##########
 ALIASES=/etc/profile.d/99-breachlite-aliases.sh
 echo "[*] Adding handy aliases to $ALIASES"
-cat <<'EOF' > "$ALIASES"
+cat <<'EOF' >"$ALIASES"
 # Ensure Go user bin is on PATH for tools like nuclei/httpx/naabu
 export PATH="$PATH:$HOME/go/bin"
 
@@ -153,7 +157,7 @@ echo "[*] Installing OpenVPN client & NetworkManager plugin…"
 apt install -y openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
 mkdir -p /home/"$SUDO_USER"/vpn
 chown "$SUDO_USER":"$SUDO_USER" /home/"$SUDO_USER"/vpn
-cat <<'EOT' > /home/"$SUDO_USER"/vpn/README.txt
+cat <<'EOT' >/home/"$SUDO_USER"/vpn/README.txt
 Place your .ovpn files in this directory and import them with:
   nmcli connection import type openvpn file <file.ovpn>
 Or launch the NetworkManager GUI (Settings ▸ Network ▸ + ▸ VPN ▸ Import).

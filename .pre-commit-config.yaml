@@ -1,22 +1,26 @@
 repos:
-    # Shellcheck - Static analysis
-    -   repo: https://github.com/koalaman/shellcheck-precommit
-        rev: v0.9.0 # Latest stable version
-        hooks:
-            -   id: shellcheck
-                args: ["--severity=warning"]
+  # Shellcheck - Static analysis
+  - repo: local
+    hooks:
+     - id: shellcheck
+       name: shellcheck (system)
+       entry: shellcheck
+       language: system
+       types: [shell]
+       args: ["--external-sources", "--severity=warning"]
+       files: \.(sh|bash|ksh|zsh)$
 
-    # shfmt - Shell Script Formatter
-    -   repo: https://github.com/scop/pre-commit-shfmt
-        rev: v3.12.0-2
-        hooks:
+  # shfmt - Shell Script Formatter
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.12.0-2
+    hooks:
+    - id: shfmt         # prebuilt upstream executable
+      args: ["-w", "-i", "4", "-ci"] # Customize formatting options
 
-            -   id: shfmt         # prebuilt upstream executable
-
-    # bashate - Style Enforcement
-    -   repo: https://github.com/openstack/bashate
-        rev: 0.6.0 # Latest stable version
-        hooks:
-            -   id: bashate
+  # bashate - Style Enforcement
+  - repo: https://github.com/openstack/bashate
+    rev: 0.6.0 # Latest stable version
+    hooks:
+      - id: bashate
 
 
