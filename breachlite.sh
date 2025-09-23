@@ -82,7 +82,7 @@ fi
 
 ########## 7. Threat‑Intel / OSINT tools ##########
 echo "[*] Installing threat‑intel & OSINT helpers…"
-pip install --upgrade threatfox ioc_parser
+python3 -m pip install --upgrade threatfox ioc_parser
 # Popular OSINT Go tools
 sudo -u "$TARGET_USER" go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 sudo -u "$TARGET_USER" go install github.com/OJ/gobuster/v3@latest
