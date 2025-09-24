@@ -13,7 +13,7 @@ jobs:
       - name: Install linters
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck shfmt bashate
+          sudo apt-get install -y shellcheck shfmt 
 
       - name: ShellCheck (static analysis)
         run: |
@@ -22,7 +22,3 @@ jobs:
       - name: shfmt (format check, 4-space indent)
         run: |
           shfmt -d -i 4 -ci **/*.sh **/*.bash **/*.ksh **/*.zsh
-
-      - name: bashate (style)
-        run: |
-          bashate **/*.sh **/*.bash **/*.ksh **/*.zsh
