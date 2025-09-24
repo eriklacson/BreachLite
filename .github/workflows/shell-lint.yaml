@@ -17,8 +17,20 @@ jobs:
 
       - name: ShellCheck (static analysis)
         run: |
-          shellcheck --external-sources --severity=warning
+          set -euo pipefail
+          mapfile -t shell_files < <(git ls-files '*.sh' '*.bash' '*.ksh' '*.zsh')
+          if [ "${#shell_files[@]}" -eq 0 ]; then
+            echo "No shell scripts detected — skipping ShellCheck."
+            exit 0
+          fi
+          shellcheck --external-sources --severity=warning "${shell_files[@]}"
 
       - name: shfmt (format check, 4-space indent)
         run: |
-          shfmt -d -i 4 -ci **/*.sh **/*.bash **/*.ksh **/*.zsh
+           set -euo pipefail
+          mapfile -t shell_files < <(git ls-files '*.sh' '*.bash' '*.ksh' '*.zsh')
+          if [ "${#shell_files[@]}" -eq 0 ]; then
+            echo "No shell scripts detected — skipping shfmt."
+            exit 0
+          fi
+          shfmt -d -i 4 -ci "${shell_files[@]}"
