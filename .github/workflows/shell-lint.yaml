@@ -1,0 +1,28 @@
+# .github/workflows/lint.yml
+name: shell-lint
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt bashate
+
+      - name: ShellCheck (static analysis)
+        run: |
+          shellcheck --external-sources --severity=warning **/*.sh **/*.bash **/*.ksh **/*.zsh
+
+      - name: shfmt (format check, 4-space indent)
+        run: |
+          shfmt -d -i 4 -ci **/*.sh **/*.bash **/*.ksh **/*.zsh
+
+      - name: bashate (style)
+        run: |
+          bashate **/*.sh **/*.bash **/*.ksh **/*.zsh
