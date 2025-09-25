@@ -36,24 +36,6 @@ jobs:
 
           shellcheck --external-sources --severity=warning "${shell_files[@]}"
 
-      - name: bashate (style guide)
-        run: |
-          set -euo pipefail
-
-          mapfile -t shell_files < <(git ls-files '*.sh' '*.bash' '*.ksh' '*.zsh')
-          if [ "${#shell_files[@]}" -eq 0 ]; then
-              shopt -s globstar nullglob
-              shell_files=(**/*.sh **/*.bash **/*.ksh **/*.zsh)
-              shopt -u globstar nullglob
-          fi
-
-          if [ "${#shell_files[@]}" -eq 0 ]; then
-              echo "No shell scripts detected — skipping bashate."
-              exit 0
-          fi
-
-          bashate --error "${shell_files[@]}"
-
       - name: shfmt (format check, 4-space indent)
         run: |
           set -euo pipefail
@@ -71,3 +53,21 @@ jobs:
           fi
 
           shfmt -d -i 4 -ci "${shell_files[@]}"
+
+        - name: bashate (style guide)
+        run: |
+          set -euo pipefail
+
+          mapfile -t shell_files < <(git ls-files '*.sh' '*.bash' '*.ksh' '*.zsh')
+          if [ "${#shell_files[@]}" -eq 0 ]; then
+              shopt -s globstar nullglob
+              shell_files=(**/*.sh **/*.bash **/*.ksh **/*.zsh)
+              shopt -u globstar nullglob
+          fi
+
+          if [ "${#shell_files[@]}" -eq 0 ]; then
+              echo "No shell scripts detected — skipping bashate."
+              exit 0
+          fi
+
+          bashate "${shell_files[@]}"
