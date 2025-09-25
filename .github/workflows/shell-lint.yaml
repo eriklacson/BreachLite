@@ -3,6 +3,7 @@ name: shell-lint
 
 on:
   pull_request:
+  workflow_dispatch:  # adds a "Run workflow" button in the UI  
 
 jobs:
   lint:
