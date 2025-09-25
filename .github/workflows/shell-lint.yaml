@@ -3,7 +3,12 @@ name: shell-lint
 
 on:
   pull_request:
-  workflow_dispatch:  # adds a "Run workflow" button in the UI  
+  branches:
+      - main
+    paths:
+      - '**/*.sh'
+      - '.github/workflows/shell-lint.yaml'
+  workflow_dispatch:  
 
 jobs:
   lint:
