@@ -1,13 +1,9 @@
-# .github/workflows/lint.yml
 name: shell-lint
 
 on:
   pull_request:
-  branches: [main]
-    paths:
-      - '**/*.sh'
-      - '.github/workflows/shell-lint.yaml'
-  workflow_dispatch:  
+    branches: [main]
+    workflow_dispatch:  
 
 jobs:
   lint:
@@ -59,7 +55,7 @@ jobs:
 
           shfmt -d -i 4 -ci "${shell_files[@]}"
 
-        - name: bashate (style guide)
+      - name: bashate (style guide)
         run: |
           set -euo pipefail
 
