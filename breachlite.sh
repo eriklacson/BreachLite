@@ -139,7 +139,7 @@ usermod -aG docker "$TARGET_USER"
 
 ########## 6. Core Red‑Team & Cracking tools ##########
 echo "[*] Installing core red‑team & password‑cracking tools…"
-ensure_apt_packages nmap metasploit-framework responder yara yara-python ffuf \
+ensure_apt_packages nmap metasploit-framework responder yara yara-python \
     hashcat john hydra seclists wordlists
 # Latest ffuf (optional)
 ensure_go_tool "ffuf" "github.com/ffuf/ffuf/v2@latest" "ffuf"
