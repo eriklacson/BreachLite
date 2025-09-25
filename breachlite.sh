@@ -1,8 +1,85 @@
 #!/usr/bin/env bash
 # breachlite.sh
 # BreachLite bootstrapper – One‑command setup for a lean red‑team, threat‑intel, vuln‑management & password‑cracking workstation on Ubuntu 22.04 / 24.04
-# https://github.com/YOURUSER/BreachLite
+# https://github.com/eriklacson/BreachLite
+
+# Ensure the script is always executed with Bash so helper functions are available
+if [ -z "${BASH_VERSION:-}" ]; then
+    exec /usr/bin/env bash "$0" "$@"
+fi
+
 set -euo pipefail
+
+# Helper to resolve and optionally install Go-based tools for the target user
+go_tool_path() {
+    local binary="$1"
+    sudo -u "$TARGET_USER" bash -lc "command -v \"$binary\" 2>/dev/null" || true
+}
+
+ensure_go_tool() {
+    local binary="$1"
+    local package="$2"
+    local label="${3:-$binary}"
+    local bin_path
+    bin_path=$(go_tool_path "$binary")
+    if [[ -n "$bin_path" ]]; then
+        echo "[*] $label already installed at $bin_path — skipping go install."
+    else
+        echo "[*] Installing $label via go install…"
+        sudo -u "$TARGET_USER" bash -lc "GO111MODULE=on go install $package"
+    fi
+}
+
+# Ensure apt packages are installed only when missing
+ensure_apt_packages() {
+    local opts=()
+    local packages=()
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == --* ]]; then
+            opts+=("$arg")
+        else
+            packages+=("$arg")
+        fi
+    done
+
+    if ((${#packages[@]} == 0)); then
+        echo "[!] ensure_apt_packages: no packages provided." >&2
+        return 1
+    fi
+
+    local missing=()
+    local pkg
+    for pkg in "${packages[@]}"; do
+        if dpkg -s "$pkg" >/dev/null 2>&1; then
+            echo "[*] $pkg already installed — skipping apt install."
+        else
+            missing+=("$pkg")
+        fi
+    done
+
+    if ((${#missing[@]})); then
+        echo "[*] Installing packages via apt: ${missing[*]}"
+        if ! apt install -y "${opts[@]}" "${missing[@]}"; then
+            return $?
+        fi
+    else
+        echo "[*] All requested packages already present."
+    fi
+
+    return 0
+}
+
+ensure_snap() {
+    local snap_name="$1"
+    shift || true
+    if snap list "$snap_name" >/dev/null 2>&1; then
+        echo "[*] Snap $snap_name already installed — skipping snap install."
+    else
+        echo "[*] Installing snap $snap_name…"
+        snap install "$snap_name" "$@"
+    fi
+}
 
 # Ensure all apt/dpkg operations run non-interactively
 export DEBIAN_FRONTEND=noninteractive
@@ -25,7 +102,7 @@ echo "[*] Detected Ubuntu $REL"
 ########## 1. Base system update ##########
 echo "[*] Updating system & installing base packages…"
 apt update && apt -y upgrade
-apt install -y --no-install-recommends \
+ensure_apt_packages --no-install-recommends \
     build-essential git curl wget unzip jq \
     ca-certificates gnupg lsb-release software-properties-common \
     python3 python3-pip golang-go net-tools ufw fail2ban \
@@ -33,14 +110,14 @@ apt install -y --no-install-recommends \
 
 ########## 2. Minimal GUI (XFCE) ##########
 echo "[*] Installing minimal XFCE environment…"
-apt install -y xubuntu-desktop-minimal lightdm
+ensure_apt_packages xubuntu-desktop-minimal lightdm
 # Disable compositor for performance
 sudo -u "$TARGET_USER" xfconf-query -c xfwm4 -p /general/use_compositing -s false || true
 systemctl set-default graphical.target
 
 ########## 3. Power optimisation ##########
 echo "[*] Enabling auto-cpufreq daemon…"
-snap install auto-cpufreq --classic
+ensure_snap auto-cpufreq --classic
 auto-cpufreq --install
 
 ########## 4. Swap tuning ##########
@@ -56,18 +133,18 @@ grep -q vm.swappiness /etc/sysctl.conf || echo 'vm.swappiness=10' >>/etc/sysctl.
 
 ########## 5. Docker ##########
 echo "[*] Installing Docker & Compose…"
-apt install -y docker.io docker-compose-plugin
+ensure_apt_packages docker.io docker-compose-plugin
 systemctl enable --now docker
 usermod -aG docker "$TARGET_USER"
 
 ########## 6. Core Red‑Team & Cracking tools ##########
 echo "[*] Installing core red‑team & password‑cracking tools…"
-apt install -y nmap metasploit-framework responder yara yara-python ffuf \
+ensure_apt_packages nmap metasploit-framework responder yara yara-python ffuf \
     hashcat john hydra seclists wordlists
 # Latest ffuf (optional)
-sudo -u "$TARGET_USER" GO111MODULE=on go install github.com/ffuf/ffuf/v2@latest
+ensure_go_tool "ffuf" "github.com/ffuf/ffuf/v2@latest" "ffuf"
 # Sliver C2
-snap install sliver
+ensure_snap sliver
 # Burp Suite (community) – silent unattended installer
 BURP_URL="https://portswigger-cdn.net/burp/releases/download?product=community&version=latest&type=Linux"
 mkdir -p /opt/burpsuite && cd /opt/burpsuite
@@ -84,9 +161,9 @@ fi
 echo "[*] Installing threat‑intel & OSINT helpers…"
 python3 -m pip install --upgrade threatfox ioc_parser
 # Popular OSINT Go tools
-sudo -u "$TARGET_USER" go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-sudo -u "$TARGET_USER" go install github.com/OJ/gobuster/v3@latest
-sudo -u "$TARGET_USER" go install github.com/caffix/amass/v3/...@latest
+ensure_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest" "subfinder"
+ensure_go_tool "gobuster" "github.com/OJ/gobuster/v3@latest" "gobuster"
+ensure_go_tool "amass" "github.com/caffix/amass/v3/...@latest" "amass"
 
 ########## 7.1 Vulnerability scanners ##########
 echo "[*] Installing vulnerability scanners…"
@@ -101,15 +178,25 @@ if [[ -z "$GOPATH_DIR" ]]; then
     fi
 fi
 
-# Nuclei (ProjectDiscovery) — install as non-root user
-sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
-# First-time templates update via absolute path (avoid PATH race)
-if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
-    sudo -u "$TARGET_USER" "$GOPATH_DIR/bin/nuclei" -update-templates || true
+# Nuclei (ProjectDiscovery) — install as non-root user unless already present
+NUCLEI_BIN=$(go_tool_path nuclei)
+if [[ -n "$NUCLEI_BIN" ]]; then
+    echo "[*] Nuclei already installed at $NUCLEI_BIN — skipping go install."
+else
+    ensure_go_tool "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest" "nuclei"
+    if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
+        NUCLEI_BIN="$GOPATH_DIR/bin/nuclei"
+    else
+        NUCLEI_BIN=$(go_tool_path nuclei)
+    fi
+fi
+# First-time templates update via detected binary
+if [[ -n "$NUCLEI_BIN" ]]; then
+    sudo -u "$TARGET_USER" "$NUCLEI_BIN" -update-templates || true
 fi
 
 # Nikto & Exploit-DB (searchsploit)
-apt install -y nikto exploitdb
+ensure_apt_packages nikto exploitdb
 
 # Trivy (prefer Ubuntu archive; fallback to Aqua Security's signed repo)
 if ! apt -y install trivy 2>/dev/null; then
@@ -143,7 +230,7 @@ deb [signed-by=/usr/share/keyrings/trivy-archive-keyring.gpg] https://aquasecuri
 EOF_TRIVY
 
     apt update
-    apt install -y trivy
+    ensure_apt_packages trivy
 
     trap - EXIT
     cleanup_trivy_tmp
@@ -151,11 +238,11 @@ EOF_TRIVY
 fi
 
 # Lynis (host audit)
-apt install -y lynis
+ensure_apt_packages lynis
 
 # Optional ProjectDiscovery companions
-sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest'
-sudo -u "$TARGET_USER" bash -lc 'GO111MODULE=on go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest'
+ensure_go_tool "httpx" "github.com/projectdiscovery/httpx/cmd/httpx@latest" "httpx"
+ensure_go_tool "naabu" "github.com/projectdiscovery/naabu/v2/cmd/naabu@latest" "naabu"
 
 ########## 8. Hardening ##########
 echo "[*] Enabling UFW & Fail2Ban…"
@@ -199,7 +286,7 @@ chmod +x "$ALIASES"
 
 ########## 10. VPN / CTF connectivity ##########
 echo "[*] Installing OpenVPN client & NetworkManager plugin…"
-apt install -y openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
+ensure_apt_packages openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
 mkdir -p /home/"$TARGET_USER"/vpn
 chown "$TARGET_USER":"$TARGET_USER" /home/"$TARGET_USER"/vpn
 cat <<'EOT' >/home/"$TARGET_USER"/vpn/README.txt
