@@ -1,13 +1,9 @@
-# .github/workflows/lint.yml
 name: shell-lint
 
 on:
   pull_request:
-  branches: [main]
-    paths:
-      - '**/*.sh'
-      - '.github/workflows/shell-lint.yaml'
-  workflow_dispatch:  
+    branches: [main]
+    workflow_dispatch:  
 
 jobs:
   lint:
