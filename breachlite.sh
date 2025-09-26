@@ -274,8 +274,7 @@ ufw default allow outgoing
 ufw allow ssh
 ufw --force enable
 systemctl enable --now fail2ban
-DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upgrades
-dpkg-reconfigure --priority=low unattended-upgrades
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive -p low unattended-upgrades
 
 ########## 9. Productivity aliases ##########
 ALIASES=/etc/profile.d/99-breachlite-aliases.sh
