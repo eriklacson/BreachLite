@@ -10,18 +10,17 @@
 ### Fresh install (main branch)
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/main/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.sh
 sudo bash breachlite.sh
 ```
-
 ### Pin to a tagged release
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/v1.2.0/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/v1.2.0/breachlite.sh
 sudo bash breachlite.sh
 ```
 
-> **Tip:** Run the script again any time—apt, snap, `go install`, and pip steps are all idempotent.
+> **Tip:** Replace `v1.2.0` with any published tag to lock onto a specific version.
 
 ---
 
@@ -70,18 +69,25 @@ docker run -it --rm --name sliver \
 
 ## 4  Handy aliases
 
-| Alias       | Expands to                                                                           | Purpose                            |
-| ----------- | ------------------------------------------------------------------------------------ | ---------------------------------- |
-| `ff`        | `ffuf -t 50 -fs 424242`                                                              | Fast web-fuzz baseline             |
-| `hash`      | `hashcat`                                                                            | Shorter typing                     |
-| `johnny`    | `john --format=dynamic`                                                              | Quick John launch                  |
-| `rockyou`   | `/usr/share/wordlists/rockyou.txt`                                                   | Path convenience                   |
-| `vulnscan`  | `nuclei -l targets.txt -severity critical,high -rl 100 -c 50 -o nuclei-findings.txt` | Sensible default Nuclei scan       |
-| `imgscan`   | `trivy image`                                                                        | Container image vulnerability scan |
-| `hostaudit` | `lynis audit system`                                                                 | One-shot host audit                |
-| `httpprobe` | `httpx -silent -status-code -tech-detect -title -follow-redirects`                   | Fast HTTP probing/tech detect      |
-| `fastports` | `naabu -top-ports 1000 -rate 1000 -c 200`                                            | Quick port scan baseline           |
-
+| Alias           | Expands to                                                      | Purpose                               |
+| --------------- | --------------------------------------------------------------- | ------------------------------------- |
+| `ll`            | `ls -alF`                                                       | Detailed directory listing            |
+| `grep`          | `grep --color=auto`                                             | Highlighted search results            |
+| `nse`           | `nmap --script`                                                 | Quick NSE invocation                  |
+| `msf`           | `msfconsole -q`                                                 | Launch Metasploit quietly             |
+| `ff`            | `ffuf -t 50 -fs 424242`                                         | Fast web fuzz baseline                |
+| `hash`          | `hashcat`                                                       | Shorter typing                        |
+| `johnny`        | `john --format=dynamic`                                         | Quick John launch                     |
+| `hyd`           | `hydra`                                                         | Hydra shortcut                        |
+| `rockyou`       | `/usr/share/wordlists/rockyou.txt`                              | Wordlist path convenience             |
+| `nucleiupdate`  | `nuclei -update-templates`                                      | Refresh Nuclei templates              |
+| `vulnscan`      | `nuclei -l targets.txt -severity critical,high -rl 100 -c 50 -o nuclei-findings.txt` | Batch CVE sweep tuned for stability |
+| `imgscan`       | `trivy image`                                                   | Container image vulnerability scan    |
+| `hostaudit`     | `lynis audit system`                                            | One-shot host audit                   |
+| `httpprobe`     | `httpx -silent -status-code -tech-detect -title -follow-redirects` | Probe and fingerprint HTTP services |
+| `fastports`     | `naabu -top-ports 1000 -rate 1000 -c 200`                       | Quick top-port scan                   |
+| `dockerkill`    | <code>docker ps -q &#124; xargs -r docker kill</code>            | Stop all running containers           |
+| `dockerclean`   | `docker system prune -f --volumes`                              | Prune containers, images, and volumes |
 ---
 
 ## 5  Troubleshooting
