@@ -123,10 +123,27 @@ auto-cpufreq --install
 ########## 4. Swap tuning ##########
 echo "[*] Creating 4 GiB swapfile & lowering swappiness…"
 swapoff -a || true
-fallocate -l 4G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-swapon /swapfile
+SWAPFILE="/swapfile"
+DESIRED_SIZE=$((4 * 1024 * 1024 * 1024))
+if [[ -e "$SWAPFILE" && ! -f "$SWAPFILE" ]]; then
+    echo "[*] Existing /swapfile is not a regular file — recreating."
+    rm -f "$SWAPFILE"
+elif [[ -f "$SWAPFILE" ]]; then
+    current_size=$(stat -c%s "$SWAPFILE" 2>/dev/null || echo 0)
+    if ((current_size != DESIRED_SIZE)); then
+        echo "[*] Existing swapfile differs from desired size — recreating."
+        rm -f "$SWAPFILE"
+    else
+        echo "[*] Reusing existing swapfile."
+    fi
+fi
+if [[ ! -f "$SWAPFILE" ]]; then
+    echo "[*] Allocating new swapfile."
+    fallocate -l 4G "$SWAPFILE"
+fi
+chmod 600 "$SWAPFILE"
+mkswap "$SWAPFILE"
+swapon "$SWAPFILE"
 grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
 sysctl -w vm.swappiness=10
 grep -q vm.swappiness /etc/sysctl.conf || echo 'vm.swappiness=10' >>/etc/sysctl.conf
