@@ -8,7 +8,7 @@
 curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/main/breachlite.sh
 sudo bash breachlite.sh
 ```
-
+> **Go toolchain:** On Ubuntu 22.04 the bootstrapper pulls the latest Go release from go.dev so ProjectDiscovery tooling builds with a current compiler.
 > **Security note:** Trivy is pulled from Ubuntu's archive when available. If the package is missing, the script enables Aqua Security's signed APT repository only after verifying the publishing key fingerprint.
 
 

@@ -10,10 +10,13 @@ fi
 
 set -euo pipefail
 
+# Common directories where the Go toolchain might live (tarball install, snap)
+GO_TOOLCHAIN_PATH="/usr/local/go/bin:/snap/bin"
+
 # Helper to resolve and optionally install Go-based tools for the target user
 go_tool_path() {
     local binary="$1"
-    sudo -u "$TARGET_USER" bash -lc "command -v \"$binary\" 2>/dev/null" || true
+    sudo -u "$TARGET_USER" bash -lc "PATH=$GO_TOOLCHAIN_PATH:\$PATH command -v \"$binary\" 2>/dev/null" || true
 }
 
 ensure_go_tool() {
@@ -27,7 +30,7 @@ ensure_go_tool() {
     else
         echo "[*] Installing $label via go install…"
     fi
-    sudo -u "$TARGET_USER" bash -lc "GO111MODULE=on go install $package"
+    sudo -u "$TARGET_USER" bash -lc "PATH=$GO_TOOLCHAIN_PATH:\$PATH GO111MODULE=on go install $package"
 }
 
 # Ensure apt packages are installed only when missing
@@ -105,8 +108,62 @@ apt update && apt -y upgrade
 ensure_apt_packages --no-install-recommends \
     build-essential git curl wget unzip jq \
     ca-certificates gnupg lsb-release software-properties-common \
-    python3 python3-pip golang-go net-tools ufw fail2ban \
+    python3 python3-pip net-tools ufw fail2ban \
     apt-transport-https
+
+echo "[*] Ensuring Go toolchain…"
+if [[ "$REL" == "22.04" ]]; then
+    GO_VERSION="1.22.5"
+    GO_ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
+    case "$GO_ARCH" in
+        amd64)
+            GO_DL_ARCH="amd64"
+            ;;
+        arm64)
+            GO_DL_ARCH="arm64"
+            ;;
+        *)
+            echo "[!] Unsupported architecture for upstream Go install: $GO_ARCH" >&2
+            echo "    Install Go manually or adjust the script for your platform." >&2
+            exit 1
+            ;;
+    esac
+
+    GO_TARBALL="go${GO_VERSION}.linux-${GO_DL_ARCH}.tar.gz"
+    GO_URL="https://go.dev/dl/${GO_TARBALL}"
+    TMP_GO_DIR=$(mktemp -d)
+    echo "[*] Downloading Go ${GO_VERSION} from go.dev…"
+    if ! curl -fsSL "$GO_URL" -o "$TMP_GO_DIR/$GO_TARBALL"; then
+        rm -rf "$TMP_GO_DIR"
+        echo "[!] Failed to download Go toolchain from $GO_URL" >&2
+        exit 1
+    fi
+    echo "[*] Installing Go ${GO_VERSION} to /usr/local/go…"
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf "$TMP_GO_DIR/$GO_TARBALL"
+    rm -rf "$TMP_GO_DIR"
+    install -d /usr/local/bin
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
+    ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+else
+    ensure_apt_packages golang-go
+fi
+
+if [[ -d /usr/local/go/bin ]]; then
+    PATH="/usr/local/go/bin:$PATH"
+    export PATH
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+    echo "[!] Go binary not found in PATH after installation." >&2
+    exit 1
+fi
+
+if ! sudo -u "$TARGET_USER" bash -lc "PATH=$GO_TOOLCHAIN_PATH:\$PATH command -v go >/dev/null"; then
+    echo "[!] Target user $TARGET_USER cannot locate the Go binary in PATH." >&2
+    echo "    Ensure /usr/local/bin or /snap/bin is included in default PATH settings." >&2
+    exit 1
+fi
 
 ########## 2. Minimal GUI (XFCE) ##########
 echo "[*] Installing minimal XFCE environment…"

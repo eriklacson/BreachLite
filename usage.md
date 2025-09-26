@@ -15,6 +15,8 @@ sudo bash breachlite.sh
 ```
 ### Pin to a tagged release
 
+**Go on Jammy:** When running on Ubuntu 22.04 (Jammy), the installer downloads the latest upstream Go toolchain so `nuclei`, `httpx`, and `naabu` compile against a modern release.
+
 ```bash
 curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/v1.2.0/breachlite.sh
 sudo bash breachlite.sh
@@ -24,6 +26,9 @@ sudo bash breachlite.sh
 
 > **Sliver on ARM64:** The installer checks `dpkg --print-architecture` near the Sliver step. If you're on `amd64`, the Sliver snap is installed. Other architectures (e.g. `arm64`) automatically skip the snap and print Docker usage instructions instead.
 ### Upgrade an existing install
+
+> **Heads up (Ubuntu 22.04):** BreachLite now bootstraps the latest upstream Go toolchain so ProjectDiscovery utilities compile cleanly even on LTS images.
+
 
 ```bash
 ---
@@ -125,9 +130,14 @@ To revert:
 sudo apt remove --purge \
   xubuntu-desktop-minimal lightdm \
   docker.io docker-compose-plugin \
-  nmap metasploit-framework responder yara yara-python ffuf \
-  hashcat john hydra seclists wordlists nuclei nikto exploitdb \
-  trivy lynis openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
+  nmap metasploit-framework responder yara yara-python \
+  hashcat john hydra seclists wordlists \
+  nikto exploitdb trivy lynis \
+  openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
+sudo snap remove sliver auto-cpufreq
+rm -f "$HOME/go/bin"/{ffuf,subfinder,gobuster,amass,nuclei,httpx,naabu}
+go clean -cache
+sudo rm -rf /opt/burpsuite ~/nuclei-templates ~/.cache/trivy
 ```
 
 ---
