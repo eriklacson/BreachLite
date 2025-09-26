@@ -118,10 +118,12 @@ BreachLite is additive and does not replace system packages.\
 To revert:
 
 ```bash
-# Remove major stacks (example)
-sudo apt remove --purge hashcat john hydra sliver* nuclei trivy lynis nikto exploitdb
-sudo snap remove sliver auto-cpufreq
-sudo rm -rf /opt/burpsuite ~/nuclei-templates ~/.cache/trivy
+sudo apt remove --purge \
+  xubuntu-desktop-minimal lightdm \
+  docker.io docker-compose-plugin \
+  nmap metasploit-framework responder yara yara-python ffuf \
+  hashcat john hydra seclists wordlists nuclei nikto exploitdb \
+  trivy lynis openvpn openvpn-systemd-resolved network-manager-openvpn-gnome
 ```
 
 ---
