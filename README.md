@@ -40,7 +40,7 @@ nuclei -l targets.txt -severity high,critical -o nuclei-findings.txt
 ## Install from a tagged release
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOURUSER/BreachLite/v1.2.0/breachlite.sh
+curl -O https://raw.githubusercontent.com/eriklacson/BreachLite/v1.2.0/breachlite.sh
 sudo bash breachlite.sh
 ```
 
@@ -58,7 +58,7 @@ sudo bash breachlite.sh
 
 ## Reporting Issues
 
-Please open an issue in the [GitHub tracker](https://github.com/YOURUSER/BreachLite/issues) for bugs, feature requests, or questions. Include:
+Please open an issue in the [GitHub tracker](https://github.com/eriklacson/BreachLite/issues) for bugs, feature requests, or questions. Include:
 
 - **Steps to reproduce** (commands, inputs, environment)
 - **Expected vs. actual behaviour**
