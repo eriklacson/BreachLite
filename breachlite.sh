@@ -23,11 +23,11 @@ ensure_go_tool() {
     local bin_path
     bin_path=$(go_tool_path "$binary")
     if [[ -n "$bin_path" ]]; then
-        echo "[*] $label already installed at $bin_path — skipping go install."
+        echo "[*] $label already installed at $bin_path — installing/updating via go install…"
     else
         echo "[*] Installing $label via go install…"
-        sudo -u "$TARGET_USER" bash -lc "GO111MODULE=on go install $package"
     fi
+    sudo -u "$TARGET_USER" bash -lc "GO111MODULE=on go install $package"
 }
 
 # Ensure apt packages are installed only when missing
@@ -208,16 +208,10 @@ if [[ -z "$GOPATH_DIR" ]]; then
 fi
 
 # Nuclei (ProjectDiscovery) — install as non-root user unless already present
+ensure_go_tool "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest" "nuclei"
 NUCLEI_BIN=$(go_tool_path nuclei)
-if [[ -n "$NUCLEI_BIN" ]]; then
-    echo "[*] Nuclei already installed at $NUCLEI_BIN — skipping go install."
-else
-    ensure_go_tool "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest" "nuclei"
-    if [[ -x "$GOPATH_DIR/bin/nuclei" ]]; then
-        NUCLEI_BIN="$GOPATH_DIR/bin/nuclei"
-    else
-        NUCLEI_BIN=$(go_tool_path nuclei)
-    fi
+if [[ -z "$NUCLEI_BIN" && -x "$GOPATH_DIR/bin/nuclei" ]]; then
+    NUCLEI_BIN="$GOPATH_DIR/bin/nuclei"
 fi
 # First-time templates update via detected binary
 if [[ -n "$NUCLEI_BIN" ]]; then
@@ -280,8 +274,7 @@ ufw default allow outgoing
 ufw allow ssh
 ufw --force enable
 systemctl enable --now fail2ban
-DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upgrades
-dpkg-reconfigure --priority=low unattended-upgrades
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive -p low unattended-upgrades
 
 ########## 9. Productivity aliases ##########
 ALIASES=/etc/profile.d/99-breachlite-aliases.sh
