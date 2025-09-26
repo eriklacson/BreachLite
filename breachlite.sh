@@ -144,7 +144,15 @@ ensure_apt_packages nmap metasploit-framework responder yara yara-python \
 # Latest ffuf (optional)
 ensure_go_tool "ffuf" "github.com/ffuf/ffuf/v2@latest" "ffuf"
 # Sliver C2
-ensure_snap sliver
+SLIVER_ARCH=$(dpkg --print-architecture 2>/dev/null || echo unknown)
+if [[ "$SLIVER_ARCH" == "amd64" ]]; then
+    ensure_snap sliver
+else
+    echo "[!] Skipping Sliver snap install — unsupported architecture: $SLIVER_ARCH"
+    echo "    Use the Docker image instead, for example:"
+    echo "    docker run -it --rm --name sliver ghcr.io/bishopfox/sliver:latest server"
+fi
+
 # Burp Suite (community) – silent unattended installer
 BURP_URL="https://portswigger-cdn.net/burp/releases/download?product=community&version=latest&type=Linux"
 mkdir -p /opt/burpsuite && cd /opt/burpsuite
@@ -159,7 +167,28 @@ fi
 
 ########## 7. Threat‑Intel / OSINT tools ##########
 echo "[*] Installing threat‑intel & OSINT helpers…"
-python3 -m pip install --upgrade threatfox ioc_parser
+pep668_detected=false
+if compgen -G "/usr/lib/python*/EXTERNALLY-MANAGED" >/dev/null; then
+    pep668_detected=true
+elif [[ -r /etc/os-release ]]; then
+    # shellcheck source=/dev/null
+    . /etc/os-release
+    if [[ "${ID:-}" == "ubuntu" && "${VERSION_ID:-}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+        major=${BASH_REMATCH[1]}
+        minor=${BASH_REMATCH[2]}
+        if ((10#$major > 23 || (10#$major == 23 && 10#$minor >= 4))); then
+            pep668_detected=true
+        fi
+    fi
+fi
+
+if [[ "$pep668_detected" == true ]]; then
+    echo "[*] Detected externally managed Python packages – installing user-local threat-intel helpers."
+    sudo -u "$TARGET_USER" python3 -m pip install --upgrade --user threatfox ioc_parser
+else
+    python3 -m pip install --upgrade threatfox ioc_parser
+fi
+
 # Popular OSINT Go tools
 ensure_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest" "subfinder"
 ensure_go_tool "gobuster" "github.com/OJ/gobuster/v3@latest" "gobuster"

@@ -22,6 +22,10 @@ sudo bash breachlite.sh
 
 > **Tip:** Replace `v1.2.0` with any published tag to lock onto a specific version.
 
+> **Sliver on ARM64:** The installer checks `dpkg --print-architecture` near the Sliver step. If you're on `amd64`, the Sliver snap is installed. Other architectures (e.g. `arm64`) automatically skip the snap and print Docker usage instructions instead.
+### Upgrade an existing install
+
+```bash
 ---
 
 ## 2  First-run checklist
@@ -104,7 +108,7 @@ docker run -it --rm --name sliver \
 
 ## 6  Reporting issues
 
-1. Search existing tickets in the [issue tracker](https://github.com/YOURUSER/BreachLite/issues).
+1. Search existing tickets in the [issue tracker](https://github.com/eriklacson/BreachLite/issues).
 2. Open a **new issue** with:\
    • Steps to reproduce\
    • Expected vs actual behaviour\
