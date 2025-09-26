@@ -108,6 +108,105 @@ ensure_apt_packages --no-install-recommends \
     python3 python3-pip golang-go net-tools ufw fail2ban \
     apt-transport-https
 
+install_go_toolchain() {
+    local go_profile="/etc/profile.d/00-breachlite-go.sh"
+
+    cat <<'EOF_GO_PROFILE' >"$go_profile"
+# Ensure Go toolchain & user binaries are available for interactive shells
+if [ -d /usr/local/go/bin ]; then
+    case ":$PATH:" in
+        *":/usr/local/go/bin:"*) ;;
+        *) export PATH="/usr/local/go/bin:$PATH" ;;
+    esac
+fi
+
+export GOPATH="${GOPATH:-$HOME/go}"
+export GOBIN="${GOBIN:-$GOPATH/bin}"
+
+if [ -d "$GOBIN" ]; then
+    case ":$PATH:" in
+        *":$GOBIN:"*) ;;
+        *) export PATH="$PATH:$GOBIN" ;;
+    esac
+fi
+EOF_GO_PROFILE
+    chmod 644 "$go_profile"
+
+    local use_upstream=false
+
+    if [[ "$REL" == "22.04" ]]; then
+        echo "[*] Installing modern Go toolchain for Ubuntu 22.04…"
+        use_upstream=true
+
+        local arch
+        arch=$(dpkg --print-architecture 2>/dev/null || echo amd64)
+        local go_arch
+        case "$arch" in
+            amd64) go_arch="amd64" ;;
+            arm64) go_arch="arm64" ;;
+            *)
+                echo "[!] Unsupported architecture for upstream Go install: $arch" >&2
+                echo "    Falling back to distro golang-go package."
+                use_upstream=false
+                ;;
+        esac
+
+        if [[ "$use_upstream" == true ]]; then
+            if dpkg -s golang-go >/dev/null 2>&1; then
+                echo "[*] Removing distro golang-go package in favour of upstream release…"
+                apt remove -y golang-go golang || true
+            fi
+
+            local go_version="1.22.5"
+            local current_go=""
+            if [[ -x /usr/local/go/bin/go ]]; then
+                current_go=$(/usr/local/go/bin/go version 2>/dev/null | awk '{print $3}')
+            fi
+
+            if [[ "$current_go" == "go${go_version}" ]]; then
+                echo "[*] Go ${go_version} already present in /usr/local/go — skipping download."
+            else
+                local go_url="https://go.dev/dl/go${go_version}.linux-${go_arch}.tar.gz"
+                local tmpdir
+                tmpdir=$(mktemp -d)
+                local tarball="$tmpdir/go${go_version}.tar.gz"
+                local extract_dir="$tmpdir/extracted"
+                mkdir -p "$extract_dir"
+                echo "[*] Downloading Go ${go_version} from $go_url"
+                if curl -fsSL "$go_url" -o "$tarball"; then
+                    echo "[*] Installing Go ${go_version} to /usr/local/go"
+                    if tar -C "$extract_dir" -xzf "$tarball"; then
+                        rm -rf /usr/local/go
+                        if mv "$extract_dir"/go /usr/local/go; then
+                            rm -rf "$extract_dir"
+                        else
+                            echo "[!] Failed to move Go into place — falling back to distro golang-go." >&2
+                            use_upstream=false
+                        fi
+                    else
+                        echo "[!] Failed to extract Go tarball — falling back to distro golang-go." >&2
+                        use_upstream=false
+                    fi
+                else
+                    echo "[!] Failed to download Go tarball — falling back to distro golang-go." >&2
+                    use_upstream=false
+                fi
+                rm -rf "$tmpdir"
+            fi
+        fi
+    fi
+
+    if [[ "$use_upstream" == true ]]; then
+        : # Upstream Go already installed
+    else
+        ensure_apt_packages golang-go
+    fi
+
+    sudo -u "$TARGET_USER" bash -lc 'mkdir -p "$HOME/go/bin"'
+}
+
+install_go_toolchain
+
 ########## 2. Minimal GUI (XFCE) ##########
 echo "[*] Installing minimal XFCE environment…"
 ensure_apt_packages xubuntu-desktop-minimal lightdm

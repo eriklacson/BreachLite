@@ -25,6 +25,9 @@ sudo bash breachlite.sh
 > **Sliver on ARM64:** The installer checks `dpkg --print-architecture` near the Sliver step. If you're on `amd64`, the Sliver snap is installed. Other architectures (e.g. `arm64`) automatically skip the snap and print Docker usage instructions instead.
 ### Upgrade an existing install
 
+> **Heads up (Ubuntu 22.04):** BreachLite now bootstraps the latest upstream Go toolchain so ProjectDiscovery utilities compile cleanly even on LTS images.
+
+
 ```bash
 ---
 
