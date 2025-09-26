@@ -1,9 +1,11 @@
 name: shell-lint
 
 on:
+  push:
+    branches: [main]  
   pull_request:
     branches: [main]
-    workflow_dispatch:  
+  workflow_dispatch:  
 
 jobs:
   lint:
