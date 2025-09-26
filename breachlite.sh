@@ -266,7 +266,7 @@ fi
 # Popular OSINT Go tools
 ensure_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest" "subfinder"
 ensure_go_tool "gobuster" "github.com/OJ/gobuster/v3@latest" "gobuster"
-ensure_go_tool "amass" "github.com/caffix/amass/v3/cmd/amass@latest" "amass"
+ensure_go_tool "amass" "github.com/owasp-amass/amass/v4" "amass"
 
 ########## 7.1 Vulnerability scanners ##########
 echo "[*] Installing vulnerability scanners…"
